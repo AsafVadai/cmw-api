@@ -405,6 +405,46 @@ class BluetoothModule(BaseMixin):
         )
 
     # ------------------------------------------------------------------ #
+    #  LE — modulation characteristics                                    #
+    # ------------------------------------------------------------------ #
+
+    def le_measure_modulation(self, timeout: float = 15.0) -> dict:
+        """
+        Trigger and return BLE modulation characteristics.
+
+        This is a mandatory BLE TX conformance measurement (Bluetooth RF-PHY
+        test spec, TRM-LE / modulation characteristics). It captures the GFSK
+        frequency deviations for the two reference payloads:
+
+          - Δf1avg : average deviation for the 0xF0 (00001111) payload
+          - Δf2avg : average deviation for the 0xAA (10101010) payload
+          - ratio  : Δf2avg / Δf1avg (must be ≥ 0.80 to pass)
+
+        Returns
+        -------
+        dict
+          status            : 'RDY' on success
+          delta_f1_avg_khz  : average Δf1 frequency deviation (kHz)
+          delta_f2_avg_khz  : average Δf2 frequency deviation (kHz)
+          delta_f2_f1_ratio : Δf2avg / Δf1avg ratio (dimensionless)
+        """
+        self._write(f"INITiate:{self._BTLE}:MEAS:MODulation")
+        self._poll_state(
+            f"FETCh:{self._BTLE}:MEAS:MODulation:STATus?",
+            target_states=("RDY",),
+            error_states=("ERR",),
+            timeout=timeout,
+        )
+        raw = self._query(f"FETCh:{self._BTLE}:MEAS:MODulation:ALL?")
+        parts = [p.strip() for p in raw.split(",")]
+        return {
+            "status": parts[0],
+            "delta_f1_avg_khz": float(parts[1]),
+            "delta_f2_avg_khz": float(parts[2]),
+            "delta_f2_f1_ratio": float(parts[3]),
+        }
+
+    # ------------------------------------------------------------------ #
     #  LE — RSSI                                                          #
     # ------------------------------------------------------------------ #
 

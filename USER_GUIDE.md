@@ -728,6 +728,16 @@ print(f"Power={pwr.power_dbm:.2f} dBm  Freq error={pwr.freq_error_khz:.1f} kHz")
 # Note: modulation_index is 0.0 for LE Coded PHY (not reported by CMW)
 ```
 
+#### Modulation characteristics (Δf1 / Δf2)
+
+Mandatory BLE TX conformance test. The Δf2avg/Δf1avg ratio must be ≥ 0.80 to pass.
+
+```python
+mod = cmw.le_measure_modulation(timeout=15.0)
+print(f"Δf1avg={mod['delta_f1_avg_khz']:.1f} kHz  Δf2avg={mod['delta_f2_avg_khz']:.1f} kHz")
+print(f"Δf2/Δf1 ratio={mod['delta_f2_f1_ratio']:.3f}  →  {'PASS' if mod['delta_f2_f1_ratio'] >= 0.80 else 'FAIL'}")
+```
+
 #### RSSI
 
 ```python
@@ -852,6 +862,15 @@ print(f"EVM RMS={result.evm_rms_db:.2f} dB  Freq error={result.freq_error_khz:.3
 ```python
 result = cmw.measure_spectral_mask(timeout=15.0)
 print(f"Mask: {result['mask_result']}  Margin={result['margin_db']:.1f} dB")
+```
+
+### Spectrum flatness
+
+Mandatory OFDM TX conformance test — verifies each subcarrier's power stays within the allowed deviation from the average.
+
+```python
+result = cmw.measure_spectrum_flatness(timeout=15.0)
+print(f"Flatness: {result['flatness_result']}  Max dev={result['max_dev_db']:.2f} dB  Margin={result['margin_db']:.2f} dB")
 ```
 
 ### Adjacent Channel Power (ACP / ACLR)

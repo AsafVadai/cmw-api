@@ -59,7 +59,7 @@ class WLANModule(BaseMixin):
           N   — 802.11n   (HT, 2.4/5 GHz, MCS 0–31)
           AC  — 802.11ac  (VHT, 5 GHz, MCS 0–9)
           AX  — 802.11ax  (HE / Wi-Fi 6/6E, 2.4/5/6 GHz, MCS 0–11)
-          BE  — 802.11be  (EHT / Wi-Fi 7, 2.4/5/6 GHz, MCS 0–13, MLO)
+          BE  — 802.11be  (EHT / Wi-Fi 7, 2.4/5/6 GHz, MCS 0–15, MLO)
 
         Note
         ----
@@ -119,7 +119,7 @@ class WLANModule(BaseMixin):
           802.11n  (HT)  : MCS 0–31  (8 modulations × up to 4 spatial streams)
           802.11ac (VHT) : MCS 0–9
           802.11ax (HE)  : MCS 0–11
-          802.11be (EHT) : use set_eht_mcs() instead (MCS 0–13)
+          802.11be (EHT) : use set_eht_mcs() instead (MCS 0–15)
 
         For 802.11a/b/g use set_data_rate() — MCS does not apply.
         """
@@ -215,6 +215,42 @@ class WLANModule(BaseMixin):
             "status": parts[0],
             "mask_result": parts[1],       # PASS | FAIL
             "peak_power_dbm": float(parts[2]),
+            "margin_db": float(parts[3]),
+        }
+
+    # ------------------------------------------------------------------ #
+    #  Spectrum flatness (per-subcarrier power deviation)                 #
+    # ------------------------------------------------------------------ #
+
+    def measure_spectrum_flatness(self, timeout: float = 15.0) -> dict:
+        """
+        Trigger and return spectrum flatness measurement.
+
+        Spectrum flatness verifies that the power of each OFDM subcarrier stays
+        within the allowed deviation from the average. It is a mandatory TX
+        conformance test for all OFDM standards (802.11a/g/n/ac/ax/be).
+
+        Returns
+        -------
+        dict
+          status         : 'RDY' on success
+          flatness_result: 'PASS' | 'FAIL'
+          max_dev_db     : worst-case subcarrier deviation from average (dB)
+          margin_db      : margin to the flatness limit (dB, positive = pass)
+        """
+        self._write(f"INITiate:{self._WLAN}:MEAS:SFLatness")
+        self._poll_state(
+            f"FETCh:{self._WLAN}:MEAS:SFLatness:STATus?",
+            target_states=("RDY",),
+            error_states=("ERR",),
+            timeout=timeout,
+        )
+        raw = self._query(f"FETCh:{self._WLAN}:MEAS:SFLatness:ALL?")
+        parts = [p.strip() for p in raw.split(",")]
+        return {
+            "status": parts[0],
+            "flatness_result": parts[1],
+            "max_dev_db": float(parts[2]),
             "margin_db": float(parts[3]),
         }
 
