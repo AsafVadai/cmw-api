@@ -430,11 +430,20 @@ class WLANModule(BaseMixin):
         """
         Set the EHT MCS index for 802.11be (Wi-Fi 7).
 
-        Valid range: 0–13
+        Valid range: 0–15
           MCS 0–9  : shared with 802.11ax (up to 1024-QAM 5/6)
           MCS 10–11: 1024-QAM (new in 802.11be)
           MCS 12–13: 4096-QAM (new in 802.11be, requires very high SNR)
+          MCS 14   : BPSK + DCM + DUP — robust duplicate mode (puncturing only)
+          MCS 15   : BPSK + DUP        — robust duplicate mode (puncturing only)
+
+        MCS 14 and 15 are extra-robust BPSK modes defined for preamble-punctured
+        transmissions. They are not higher-order modulations: they trade
+        throughput for robustness on punctured channels and are only valid when
+        a puncturing pattern is active (see set_eht_puncturing_pattern()).
         """
+        if not 0 <= mcs <= 15:
+            raise ValueError(f"EHT MCS must be 0–15, got {mcs}")
         self._write(f"CONFigure:{self._WLAN}:MEAS:EHT:MCS {mcs}")
 
     def set_eht_puncturing_pattern(self, pattern: str) -> None:

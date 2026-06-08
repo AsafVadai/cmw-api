@@ -15,7 +15,7 @@ A Python library for remote control of the **Rohde & Schwarz CMW** wideband radi
 | 5G NR Signaling | `NR5GModule` | SA & NSA/EN-DC, NR-ARFCN, SS-RSRP/SINR, throughput, BLER, EVM |
 | WCDMA / UMTS | `WCDMAModule` | Cell config, attach, RSCP/Ec/No, UL power |
 | Bluetooth | `BluetoothModule` | Classic BR/EDR: TX power, ICFT, DEVM, frequency drift, BER, modulation; BLE: TX power, RSSI, PER, BER, frequency offset, CTE/AoA/AoD |
-| WLAN | `WLANModule` | 802.11 a/b/g/n/ac/ax/be (Wi-Fi 7) — EVM, TX power, ACP/ACLR, OBW, RSSI, spectral mask, PER, MLO per-link power, EHT MCS 0–13, preamble puncturing, TWT, OFDMA, HE PPDU |
+| WLAN | `WLANModule` | 802.11 a/b/g/n/ac/ax/be (Wi-Fi 7) — EVM, TX power, ACP/ACLR, OBW, RSSI, spectral mask, PER, MLO per-link power, EHT MCS 0–15, preamble puncturing, TWT, OFDMA, HE PPDU |
 
 ---
 

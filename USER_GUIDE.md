@@ -793,7 +793,7 @@ Requires the CMW WLAN software option:
 | `N` | 802.11n | Wi-Fi 4 | 40 MHz | `set_mcs()` — MCS 0–31 |
 | `AC` | 802.11ac | Wi-Fi 5 | 160 MHz | `set_mcs()` — MCS 0–9 |
 | `AX` | 802.11ax | Wi-Fi 6/6E | 160 MHz | `set_mcs()` — MCS 0–11 |
-| `BE` | 802.11be | Wi-Fi 7 | 320 MHz | `set_eht_mcs()` — MCS 0–13 |
+| `BE` | 802.11be | Wi-Fi 7 | 320 MHz | `set_eht_mcs()` — MCS 0–15 |
 
 > **Note:** BE requires CMW firmware with 802.11be support and the **CMW-KM053x** option.
 
@@ -924,16 +924,30 @@ cmw.set_twt(enabled=True, wake_interval_ms=512.0, sleep_duration_ms=100.0)
 
 Wi-Fi 7 introduces **4096-QAM**, **320 MHz channels**, **preamble puncturing**, and **Multi-Link Operation (MLO)**.
 
-#### EHT MCS (0–13)
+#### EHT MCS (0–15)
 
 ```python
 cmw.set_standard("BE")
 cmw.set_bandwidth(320)      # up to 320 MHz on 6 GHz
 cmw.set_eht_mcs(13)         # MCS 13 = 4096-QAM 5/6
+```
 
-# MCS 0–9  : shared with 802.11ax
-# MCS 10–11: 1024-QAM (new in 802.11be)
-# MCS 12–13: 4096-QAM (new in 802.11be, requires very high SNR)
+| MCS | Modulation | Notes |
+|---|---|---|
+| 0–9 | up to 1024-QAM 5/6 | Shared with 802.11ax |
+| 10–11 | 1024-QAM | New in 802.11be |
+| 12–13 | 4096-QAM | New in 802.11be — requires very high SNR |
+| 14 | BPSK + DCM + DUP | Robust duplicate mode — **puncturing only** |
+| 15 | BPSK + DUP | Robust duplicate mode — **puncturing only** |
+
+> **MCS 14 & 15** are extra-robust BPSK modes (not higher-order modulations). They are defined exclusively for **preamble-punctured** transmissions and trade throughput for robustness. They are only valid when a puncturing pattern is active.
+
+```python
+# MCS 14/15 require an active puncturing pattern
+cmw.set_standard("BE")
+cmw.set_bandwidth(160)
+cmw.set_eht_puncturing_pattern("P80")   # puncture an 80 MHz sub-channel first
+cmw.set_eht_mcs(14)                      # BPSK + DCM + DUP robust mode
 ```
 
 #### Preamble puncturing
