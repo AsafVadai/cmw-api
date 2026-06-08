@@ -168,9 +168,9 @@ class WLANModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return WLANPowerResult(
             status=parts[0],
-            power_dbm=float(parts[1]),
-            avg_power_dbm=float(parts[2]),
-            peak_power_dbm=float(parts[3]),
+            power_dbm=self._safe_float(parts[1]),
+            avg_power_dbm=self._safe_float(parts[2]),
+            peak_power_dbm=self._safe_float(parts[3]),
         )
 
     # ------------------------------------------------------------------ #
@@ -190,10 +190,10 @@ class WLANModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return WLANEVMResult(
             status=parts[0],
-            evm_rms_db=float(parts[1]),
-            evm_peak_db=float(parts[2]),
-            freq_error_khz=float(parts[3]),
-            symbol_clock_error_ppm=float(parts[4]),
+            evm_rms_db=self._safe_float(parts[1]),
+            evm_peak_db=self._safe_float(parts[2]),
+            freq_error_khz=self._safe_float(parts[3]),
+            symbol_clock_error_ppm=self._safe_float(parts[4]),
         )
 
     # ------------------------------------------------------------------ #
@@ -214,8 +214,8 @@ class WLANModule(BaseMixin):
         return {
             "status": parts[0],
             "mask_result": parts[1],       # PASS | FAIL
-            "peak_power_dbm": float(parts[2]),
-            "margin_db": float(parts[3]),
+            "peak_power_dbm": self._safe_float(parts[2]),
+            "margin_db": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -250,8 +250,8 @@ class WLANModule(BaseMixin):
         return {
             "status": parts[0],
             "flatness_result": parts[1],
-            "max_dev_db": float(parts[2]),
-            "margin_db": float(parts[3]),
+            "max_dev_db": self._safe_float(parts[2]),
+            "margin_db": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -294,11 +294,11 @@ class WLANModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return WLANACPResult(
             status=parts[0],
-            primary_power_dbm=float(parts[1]),
-            lower_acp_dbm=float(parts[2]),
-            upper_acp_dbm=float(parts[3]),
-            lower_aclr_db=float(parts[4]),
-            upper_aclr_db=float(parts[5]),
+            primary_power_dbm=self._safe_float(parts[1]),
+            lower_acp_dbm=self._safe_float(parts[2]),
+            upper_acp_dbm=self._safe_float(parts[3]),
+            lower_aclr_db=self._safe_float(parts[4]),
+            upper_aclr_db=self._safe_float(parts[5]),
         )
 
     # ------------------------------------------------------------------ #
@@ -394,9 +394,9 @@ class WLANModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "per_pct": float(parts[1]),
-            "packet_count": int(parts[2]),
-            "error_count": int(parts[3]),
+            "per_pct": self._safe_float(parts[1]),
+            "packet_count": self._safe_int(parts[2]),
+            "error_count": self._safe_int(parts[3]),
         }
 
     # ------------------------------------------------------------------ #

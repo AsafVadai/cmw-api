@@ -90,9 +90,9 @@ class WCDMAModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return WCDMAMeasResult(
             status=parts[0],
-            rscp_dbm=float(parts[1]),
-            ec_no_db=float(parts[2]),
-            rssi_dbm=float(parts[3]),
+            rscp_dbm=self._safe_float(parts[1]),
+            ec_no_db=self._safe_float(parts[2]),
+            rssi_dbm=self._safe_float(parts[3]),
         )
 
     def measure_ul_power(self, timeout: float = 15.0) -> dict:
@@ -107,6 +107,6 @@ class WCDMAModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "dpcch_power_dbm": float(parts[1]),
-            "dpdch_power_dbm": float(parts[2]),
+            "dpcch_power_dbm": self._safe_float(parts[1]),
+            "dpdch_power_dbm": self._safe_float(parts[2]),
         }

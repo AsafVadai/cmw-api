@@ -87,10 +87,10 @@ class GPRFModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return GPRFPowerResult(
             status=parts[0],
-            current=float(parts[1]),
-            average=float(parts[2]),
-            minimum=float(parts[3]),
-            maximum=float(parts[4]),
+            current=self._safe_float(parts[1]),
+            average=self._safe_float(parts[2]),
+            minimum=self._safe_float(parts[3]),
+            maximum=self._safe_float(parts[4]),
         )
 
     def meas_fetch_power(self) -> GPRFPowerResult:
@@ -99,10 +99,10 @@ class GPRFModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return GPRFPowerResult(
             status=parts[0],
-            current=float(parts[1]),
-            average=float(parts[2]),
-            minimum=float(parts[3]),
-            maximum=float(parts[4]),
+            current=self._safe_float(parts[1]),
+            average=self._safe_float(parts[2]),
+            minimum=self._safe_float(parts[3]),
+            maximum=self._safe_float(parts[4]),
         )
 
     def meas_abort_power(self) -> None:
@@ -133,8 +133,8 @@ class GPRFModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return GPRFSpectrumResult(
             status=parts[0],
-            start_freq=float(parts[1]),
-            stop_freq=float(parts[2]),
-            peak_power=float(parts[3]),
-            peak_freq=float(parts[4]),
+            start_freq=self._safe_float(parts[1]),
+            stop_freq=self._safe_float(parts[2]),
+            peak_power=self._safe_float(parts[3]),
+            peak_freq=self._safe_float(parts[4]),
         )

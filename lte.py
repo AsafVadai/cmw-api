@@ -202,10 +202,10 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return LTEMeasResult(
             status=parts[0],
-            rsrp_dbm=float(parts[1]),
-            rsrq_db=float(parts[2]),
-            rssi_dbm=float(parts[3]),
-            sinr_db=float(parts[4]),
+            rsrp_dbm=self._safe_float(parts[1]),
+            rsrq_db=self._safe_float(parts[2]),
+            rssi_dbm=self._safe_float(parts[3]),
+            sinr_db=self._safe_float(parts[4]),
         )
 
     def fetch_rx_quality(self) -> LTEMeasResult:
@@ -213,10 +213,10 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return LTEMeasResult(
             status=parts[0],
-            rsrp_dbm=float(parts[1]),
-            rsrq_db=float(parts[2]),
-            rssi_dbm=float(parts[3]),
-            sinr_db=float(parts[4]),
+            rsrp_dbm=self._safe_float(parts[1]),
+            rsrq_db=self._safe_float(parts[2]),
+            rssi_dbm=self._safe_float(parts[3]),
+            sinr_db=self._safe_float(parts[4]),
         )
 
     # ------------------------------------------------------------------ #
@@ -250,10 +250,10 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return LTEThroughputResult(
             status=parts[0],
-            dl_throughput_mbps=float(parts[1]),
-            ul_throughput_mbps=float(parts[2]),
-            dl_bler_pct=float(parts[3]),
-            ul_bler_pct=float(parts[4]),
+            dl_throughput_mbps=self._safe_float(parts[1]),
+            ul_throughput_mbps=self._safe_float(parts[2]),
+            dl_bler_pct=self._safe_float(parts[3]),
+            ul_bler_pct=self._safe_float(parts[4]),
         )
 
     # ------------------------------------------------------------------ #
@@ -272,9 +272,9 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return LTERFPowerResult(
             status=parts[0],
-            pusch_power_dbm=float(parts[1]),
-            pucch_power_dbm=float(parts[2]),
-            prach_power_dbm=float(parts[3]),
+            pusch_power_dbm=self._safe_float(parts[1]),
+            pucch_power_dbm=self._safe_float(parts[2]),
+            prach_power_dbm=self._safe_float(parts[3]),
         )
 
     # ------------------------------------------------------------------ #
@@ -298,10 +298,10 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "dl_bler_pct": float(parts[1]),
-            "ul_bler_pct": float(parts[2]),
-            "dl_ack_count": int(parts[3]),
-            "dl_nack_count": int(parts[4]),
+            "dl_bler_pct": self._safe_float(parts[1]),
+            "ul_bler_pct": self._safe_float(parts[2]),
+            "dl_ack_count": self._safe_int(parts[3]),
+            "dl_nack_count": self._safe_int(parts[4]),
         }
 
     # ------------------------------------------------------------------ #
@@ -320,8 +320,8 @@ class LTEModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "evm_rms_pct": float(parts[1]),
-            "evm_peak_pct": float(parts[2]),
-            "freq_error_hz": float(parts[3]),
-            "timing_error_us": float(parts[4]),
+            "evm_rms_pct": self._safe_float(parts[1]),
+            "evm_peak_pct": self._safe_float(parts[2]),
+            "freq_error_hz": self._safe_float(parts[3]),
+            "timing_error_us": self._safe_float(parts[4]),
         }

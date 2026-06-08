@@ -148,10 +148,10 @@ class NR5GModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return NR5GMeasResult(
             status=parts[0],
-            ss_rsrp_dbm=float(parts[1]),
-            ss_rsrq_db=float(parts[2]),
-            ss_sinr_db=float(parts[3]),
-            csi_rsrp_dbm=float(parts[4]),
+            ss_rsrp_dbm=self._safe_float(parts[1]),
+            ss_rsrq_db=self._safe_float(parts[2]),
+            ss_sinr_db=self._safe_float(parts[3]),
+            csi_rsrp_dbm=self._safe_float(parts[4]),
         )
 
     # ------------------------------------------------------------------ #
@@ -174,10 +174,10 @@ class NR5GModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return NR5GThroughputResult(
             status=parts[0],
-            dl_throughput_mbps=float(parts[1]),
-            ul_throughput_mbps=float(parts[2]),
-            dl_bler_pct=float(parts[3]),
-            ul_bler_pct=float(parts[4]),
+            dl_throughput_mbps=self._safe_float(parts[1]),
+            ul_throughput_mbps=self._safe_float(parts[2]),
+            dl_bler_pct=self._safe_float(parts[3]),
+            ul_bler_pct=self._safe_float(parts[4]),
         )
 
     # ------------------------------------------------------------------ #
@@ -196,9 +196,9 @@ class NR5GModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "evm_rms_pct": float(parts[1]),
-            "evm_peak_pct": float(parts[2]),
-            "freq_error_hz": float(parts[3]),
+            "evm_rms_pct": self._safe_float(parts[1]),
+            "evm_peak_pct": self._safe_float(parts[2]),
+            "freq_error_hz": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -218,8 +218,8 @@ class NR5GModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "dl_bler_pct": float(parts[1]),
-            "ul_bler_pct": float(parts[2]),
+            "dl_bler_pct": self._safe_float(parts[1]),
+            "ul_bler_pct": self._safe_float(parts[2]),
         }
 
     # ------------------------------------------------------------------ #

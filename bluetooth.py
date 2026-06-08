@@ -140,9 +140,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTRFResult(
             status=parts[0],
-            power_dbm=float(parts[1]),
-            freq_error_khz=float(parts[2]),
-            modulation_index=float(parts[3]) if len(parts) > 3 else 0.0,
+            power_dbm=self._safe_float(parts[1]),
+            freq_error_khz=self._safe_float(parts[2]),
+            modulation_index=self._safe_float(parts[3]) if len(parts) > 3 else 0.0,
         )
 
     def fetch_tx_power(self) -> BTRFResult:
@@ -151,9 +151,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTRFResult(
             status=parts[0],
-            power_dbm=float(parts[1]),
-            freq_error_khz=float(parts[2]),
-            modulation_index=float(parts[3]) if len(parts) > 3 else 0.0,
+            power_dbm=self._safe_float(parts[1]),
+            freq_error_khz=self._safe_float(parts[2]),
+            modulation_index=self._safe_float(parts[3]) if len(parts) > 3 else 0.0,
         )
 
     # ------------------------------------------------------------------ #
@@ -183,9 +183,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "max_freq_dev_khz": float(parts[1]),
-            "avg_freq_dev_khz": float(parts[2]),
-            "modulation_index": float(parts[3]),
+            "max_freq_dev_khz": self._safe_float(parts[1]),
+            "avg_freq_dev_khz": self._safe_float(parts[2]),
+            "modulation_index": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -217,7 +217,7 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "icft_ppm": float(parts[1]),
+            "icft_ppm": self._safe_float(parts[1]),
             "pass_fail": parts[2],
         }
 
@@ -254,9 +254,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "devm_db": float(parts[1]),
-            "evm_rms_db": float(parts[2]),
-            "evm_peak_db": float(parts[3]),
+            "devm_db": self._safe_float(parts[1]),
+            "evm_rms_db": self._safe_float(parts[2]),
+            "evm_peak_db": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -292,7 +292,7 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "drift_ppm": float(parts[1]),
+            "drift_ppm": self._safe_float(parts[1]),
         }
 
     # ------------------------------------------------------------------ #
@@ -316,9 +316,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTBERResult(
             status=parts[0],
-            ber_pct=float(parts[1]),
-            packet_count=int(parts[2]),
-            error_count=int(parts[3]),
+            ber_pct=self._safe_float(parts[1]),
+            packet_count=self._safe_int(parts[2]),
+            error_count=self._safe_int(parts[3]),
         )
 
     # ================================================================== #
@@ -399,9 +399,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTRFResult(
             status=parts[0],
-            power_dbm=float(parts[1]),
-            freq_error_khz=float(parts[2]),
-            modulation_index=float(parts[3]) if len(parts) > 3 else 0.0,
+            power_dbm=self._safe_float(parts[1]),
+            freq_error_khz=self._safe_float(parts[2]),
+            modulation_index=self._safe_float(parts[3]) if len(parts) > 3 else 0.0,
         )
 
     # ------------------------------------------------------------------ #
@@ -439,9 +439,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "delta_f1_avg_khz": float(parts[1]),
-            "delta_f2_avg_khz": float(parts[2]),
-            "delta_f2_f1_ratio": float(parts[3]),
+            "delta_f1_avg_khz": self._safe_float(parts[1]),
+            "delta_f2_avg_khz": self._safe_float(parts[2]),
+            "delta_f2_f1_ratio": self._safe_float(parts[3]),
         }
 
     # ------------------------------------------------------------------ #
@@ -471,7 +471,7 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "rssi_dbm": float(parts[1]),
+            "rssi_dbm": self._safe_float(parts[1]),
         }
 
     # ------------------------------------------------------------------ #
@@ -503,8 +503,8 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return {
             "status": parts[0],
-            "freq_offset_khz": float(parts[1]),
-            "freq_offset_ppm": float(parts[2]),
+            "freq_offset_khz": self._safe_float(parts[1]),
+            "freq_offset_ppm": self._safe_float(parts[2]),
         }
 
     # ------------------------------------------------------------------ #
@@ -525,9 +525,9 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTBERResult(
             status=parts[0],
-            ber_pct=float(parts[1]),
-            packet_count=int(parts[2]),
-            error_count=int(parts[3]),
+            ber_pct=self._safe_float(parts[1]),
+            packet_count=self._safe_int(parts[2]),
+            error_count=self._safe_int(parts[3]),
         )
 
     # ------------------------------------------------------------------ #
@@ -560,7 +560,7 @@ class BluetoothModule(BaseMixin):
         parts = [p.strip() for p in raw.split(",")]
         return BTLEPERResult(
             status=parts[0],
-            per_pct=float(parts[1]),
-            packet_count=int(parts[2]),
-            error_count=int(parts[3]),
+            per_pct=self._safe_float(parts[1]),
+            packet_count=self._safe_int(parts[2]),
+            error_count=self._safe_int(parts[3]),
         )

@@ -24,11 +24,38 @@ A Python library for remote control of the **Rohde & Schwarz CMW** wideband radi
 - Python 3.10 or later
 - CMW instrument accessible over a LAN (TCP port 5025) or via a VISA interface
 
-```
-pip install pyvisa pyvisa-py
+## Installation
+
+```bash
+# Clone and install
+git clone https://github.com/AsafVadai/cmw-api.git
+cd cmw-api
+pip install .
+
+# With VISA support (GPIB / USB-TMC / VXI-11 / HiSLIP)
+pip install '.[visa]'
 ```
 
-`pyvisa` and `pyvisa-py` are only required when connecting via VISA (GPIB, USB‑TMC, VXI‑11, HiSLIP). The raw TCP transport has no external dependencies.
+The raw TCP transport has **no external dependencies**. `pyvisa`/`pyvisa-py` are only needed for the VISA transport and are pulled in by the `[visa]` extra.
+
+## API namespaces
+
+Each technology is exposed as a sub-module on the `CMW` object, so identically named
+methods never collide:
+
+| Namespace | Module | Example |
+|---|---|---|
+| `cmw.system` | System / IEEE-488.2 / files | `cmw.system.get_options()` |
+| `cmw.route` | RF connector routing | `cmw.route.lte_set_rx_connector("RF1C")` |
+| `cmw.gprf` | General-purpose RF | `cmw.gprf.meas_read_power()` |
+| `cmw.lte` | LTE signaling | `cmw.lte.measure_throughput()` |
+| `cmw.nr5g` | 5G NR signaling | `cmw.nr5g.measure_evm()` |
+| `cmw.wcdma` | WCDMA / UMTS | `cmw.wcdma.measure_rx_quality()` |
+| `cmw.bt` | Bluetooth Classic + LE | `cmw.bt.le_measure_per()` |
+| `cmw.wlan` | WLAN 802.11 | `cmw.wlan.measure_evm()` |
+
+Common lifecycle commands are delegated to the top level for convenience:
+`cmw.initialize()`, `cmw.reset()`, `cmw.identify()`, `cmw.get_all_errors()`, `cmw.self_check()`.
 
 ---
 
@@ -51,10 +78,10 @@ from cmw_api import CMW
 
 with CMW.via_tcp("192.168.0.1") as cmw:
     cmw.initialize()
-    cmw.gprf_set_rx_connector("RF1C")
-    cmw.meas_set_frequency(1_800_000_000)   # 1800 MHz
-    cmw.meas_set_filter_bandwidth(20_000_000)
-    result = cmw.meas_read_power()
+    cmw.route.gprf_set_rx_connector("RF1C")
+    cmw.gprf.meas_set_frequency(1_800_000_000)   # 1800 MHz
+    cmw.gprf.meas_set_filter_bandwidth(20_000_000)
+    result = cmw.gprf.meas_read_power()
     print(f"{result.average:.2f} dBm")
 ```
 
@@ -66,12 +93,12 @@ from cmw_api.lte import LTECellConfig
 
 with CMW.via_tcp("192.168.0.1") as cmw:
     cmw.initialize()
-    cmw.lte_set_rx_connector("RF1C")
-    cmw.configure_cell(LTECellConfig(band=3, dl_channel=1300, bandwidth_mhz=20))
-    cmw.cell_on()
-    cmw.expect_attach(timeout=60)
-    cmw.connect()
-    result = cmw.measure_throughput(timeout=30)
+    cmw.route.lte_set_rx_connector("RF1C")
+    cmw.lte.configure_cell(LTECellConfig(band=3, dl_channel=1300, bandwidth_mhz=20))
+    cmw.lte.cell_on()
+    cmw.lte.expect_attach(timeout=60)
+    cmw.lte.connect()
+    result = cmw.lte.measure_throughput(timeout=30)
     print(f"DL {result.dl_throughput_mbps:.1f} Mbps / UL {result.ul_throughput_mbps:.1f} Mbps")
 ```
 
@@ -83,12 +110,12 @@ from cmw_api.nr5g import NR5GCellConfig
 
 with CMW.via_tcp("192.168.0.1") as cmw:
     cmw.initialize()
-    cmw.nr5g_set_rx_connector("RF1C")
-    cmw.configure_cell(NR5GCellConfig(band=78, dl_arfcn=632628, bandwidth_mhz=100))
-    cmw.cell_on()
-    cmw.expect_attach(timeout=90)
-    cmw.connect()
-    print(cmw.measure_throughput())
+    cmw.route.nr5g_set_rx_connector("RF1C")
+    cmw.nr5g.configure_cell(NR5GCellConfig(band=78, dl_arfcn=632628, bandwidth_mhz=100))
+    cmw.nr5g.cell_on()
+    cmw.nr5g.expect_attach(timeout=90)
+    cmw.nr5g.connect()
+    print(cmw.nr5g.measure_throughput())
 ```
 
 ---
