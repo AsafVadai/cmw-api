@@ -627,12 +627,16 @@ print(f"DPCCH={pwr['dpcch_power_dbm']:.1f} dBm")
 
 #### Configuration
 
+> **Important:** `set_frequency()`, `set_expected_power()`, `set_packet_type()`, `set_trigger_source()`, and `set_burst_count()` are **Classic-only**. For BLE use the `le_*` equivalents.
+
 ```python
-cmw.set_frequency(channel=0)          # BT channel 0 = 2402 MHz; range 0–78
-cmw.set_expected_power(dbm=4.0)       # approximate DUT TX power
-cmw.set_packet_type("DH1")            # DH1|DH3|DH5|2DH1|2DH3|3DH1|3DH3|3DH5
+cmw.set_frequency(channel=0)          # BT Classic channel 0 = 2402 MHz; range 0–78
+cmw.set_expected_power(dbm=4.0)       # approximate DUT TX power (Classic only)
+cmw.set_packet_type("DH1")            # DH1 | DH3 | DH5 | 2DH1 | 2DH3 | 3DH1 | 3DH3 | 3DH5
 cmw.set_trigger_source("POWer")       # IMMediate | POWer | EXTernal
 cmw.set_burst_count(100)              # statistics averaging count
+cmw.set_payload_pattern("PRBS9")      # PRBS9 | PRBS15 | 11110000 | 10101010 | ALLOnes | ALLZeros
+cmw.set_whitening(True, tech="BT")    # data whitening ON (standard) / OFF (debug)
 ```
 
 #### TX power
@@ -657,6 +661,35 @@ mod = cmw.measure_modulation()
 # {'status': 'RDY', 'max_freq_dev_khz': 158.3, 'avg_freq_dev_khz': 155.1, 'modulation_index': 0.31}
 ```
 
+#### ICFT — Initial Carrier Frequency Tolerance
+
+Mandatory for BR/EDR conformance (typical limit: ±75 kHz / ±75 ppm).
+
+```python
+result = cmw.measure_icft(timeout=15.0)
+# {'status': 'RDY', 'icft_ppm': 12.3, 'pass_fail': 'PASS'}
+print(f"ICFT={result['icft_ppm']:.1f} ppm  →  {result['pass_fail']}")
+```
+
+#### DEVM — Differential EVM for EDR
+
+Mandatory for EDR (2DH / 3DH) conformance. Select an EDR packet type first.
+
+```python
+cmw.set_packet_type("2DH1")   # or 3DH1, 3DH5, etc.
+result = cmw.measure_devm(timeout=15.0)
+# {'status': 'RDY', 'devm_db': -28.5, 'evm_rms_db': -30.1, 'evm_peak_db': -24.3}
+print(f"DEVM={result['devm_db']:.1f} dB  EVM RMS={result['evm_rms_db']:.1f} dB")
+```
+
+#### Carrier frequency drift
+
+```python
+result = cmw.measure_frequency_drift(duration_s=1.0, timeout=30.0)
+# {'status': 'RDY', 'drift_ppm': 3.2}
+print(f"Drift={result['drift_ppm']:.1f} ppm")
+```
+
 #### BER
 
 ```python
@@ -665,14 +698,76 @@ result = cmw.measure_ber(timeout=30.0)
 print(f"BER={result.ber_pct:.4f}%  Errors={result.error_count}/{result.packet_count}")
 ```
 
+---
+
 ### Bluetooth LE
 
-```python
-cmw.le_set_phy("LE1M")        # LE1M | LE2M | LECoded_S2 | LECoded_S8
-cmw.le_set_channel(0)          # LE channel index 0–39
+#### Configuration
 
+```python
+cmw.le_set_phy("LE1M")               # LE1M | LE2M | LECoded_S2 | LECoded_S8
+cmw.le_set_channel(37)               # LE channel index 0–39 (37/38/39 = advertising)
+cmw.le_set_expected_power(dbm=0.0)   # expected DUT TX power (LE-specific)
+cmw.set_whitening(True, tech="BLE")  # data whitening ON (standard) / OFF (debug)
+```
+
+**LE PHY reference:**
+
+| Value | PHY | Data rate | Range |
+|---|---|---|---|
+| `LE1M` | LE 1M | 1 Mbps | Standard |
+| `LE2M` | LE 2M | 2 Mbps | Short range, higher throughput |
+| `LECoded_S2` | LE Coded S=2 | 500 kbps | ~2× range vs LE 1M |
+| `LECoded_S8` | LE Coded S=8 | 125 kbps | ~4× range vs LE 1M |
+
+#### TX power
+
+```python
 pwr = cmw.le_measure_tx_power(timeout=15.0)
+print(f"Power={pwr.power_dbm:.2f} dBm  Freq error={pwr.freq_error_khz:.1f} kHz")
+# Note: modulation_index is 0.0 for LE Coded PHY (not reported by CMW)
+```
+
+#### RSSI
+
+```python
+rssi = cmw.le_measure_rssi(timeout=15.0)
+print(f"RSSI={rssi['rssi_dbm']:.1f} dBm")
+```
+
+#### Frequency offset
+
+BLE 5.0+ requires frequency accuracy within ±20 ppm.
+
+```python
+result = cmw.le_measure_frequency_offset(timeout=15.0)
+print(f"Freq offset={result['freq_offset_ppm']:.1f} ppm  ({result['freq_offset_khz']:.2f} kHz)")
+```
+
+#### BER
+
+```python
 ber = cmw.le_measure_ber(packet_count=1000, timeout=30.0)
+print(f"BER={ber.ber_pct:.4f}%  Errors={ber.error_count}/{ber.packet_count}")
+```
+
+#### PER — Packet Error Rate (conformance metric)
+
+PER is the primary RX sensitivity metric in BLE conformance testing. The Bluetooth Core Spec defines a pass threshold of < 30.8% PER at the reference sensitivity level.
+
+```python
+result = cmw.le_measure_per(packet_count=1500, timeout=30.0)
+# BTLEPERResult(status='RDY', per_pct=0.2, packet_count=1500, error_count=3)
+print(f"PER={result.per_pct:.3f}%  →  {'PASS' if result.per_pct < 30.8 else 'FAIL'}")
+```
+
+#### Direction Finding — CTE / AoA / AoD (BLE 5.1+)
+
+Constant Tone Extension (CTE) enables Angle of Arrival and Angle of Departure measurements for indoor positioning.
+
+```python
+cmw.le_configure_cte(cte_type="AOA", length_us=16)   # AOA | AOD | CONnectionless
+# Then trigger the standard TX power or BER measurement; CMW captures the CTE automatically
 ```
 
 ---
@@ -688,31 +783,51 @@ Requires the CMW WLAN software option:
 
 ### Configuration
 
+**Supported standards:**
+
+| Value | Standard | Common name | Max BW | Rate/MCS config |
+|---|---|---|---|---|
+| `A` | 802.11a | Wi-Fi 1 | 20 MHz | `set_data_rate()` — 6/9/12/18/24/36/48/54 Mbps |
+| `B` | 802.11b | Wi-Fi 1 | 22 MHz | `set_data_rate()` — 1/2/5.5/11 Mbps |
+| `G` | 802.11g | Wi-Fi 3 | 20 MHz | `set_data_rate()` — 6/9/12/18/24/36/48/54 Mbps |
+| `N` | 802.11n | Wi-Fi 4 | 40 MHz | `set_mcs()` — MCS 0–31 |
+| `AC` | 802.11ac | Wi-Fi 5 | 160 MHz | `set_mcs()` — MCS 0–9 |
+| `AX` | 802.11ax | Wi-Fi 6/6E | 160 MHz | `set_mcs()` — MCS 0–11 |
+| `BE` | 802.11be | Wi-Fi 7 | 320 MHz | `set_eht_mcs()` — MCS 0–13 |
+
+> **Note:** BE requires CMW firmware with 802.11be support and the **CMW-KM053x** option.
+
 ```python
-cmw.set_standard("AC")          # A | B | G | N | AC | AX | BE
-cmw.set_channel(36)             # 802.11 channel number
-cmw.set_bandwidth(80)           # 20 | 40 | 80 | 160 | 320 MHz (320 requires BE)
-cmw.set_mcs(9)                  # MCS index 0–9 (0–13 for BE)
-cmw.set_guard_interval("SHORT") # NORM (800 ns) | SHORT (400 ns) | VSHORT (HE 200 ns)
-cmw.set_spatial_streams(2)      # number of spatial streams
+cmw.set_standard("AX")              # A | B | G | N | AC | AX | BE
+cmw.set_channel(36)                 # 802.11 channel number
+cmw.set_bandwidth(80)               # 20 | 40 | 80 | 160 | 320 MHz
+cmw.set_mcs(11)                     # MCS index — range depends on standard (see table above)
+cmw.set_guard_interval("VSHORT")    # see guard interval table below
+cmw.set_spatial_streams(2)          # 1–4 for N/AC/AX; 1–16 for BE
 cmw.set_expected_power(dbm=20.0)
-cmw.set_trigger_source("POWer") # IMMediate | POWer | EXTernal
+cmw.set_trigger_source("POWer")     # IMMediate | POWer | EXTernal
 cmw.set_burst_count(100)
 ```
 
-**Supported standards:**
+**Guard interval values:**
 
-| Value | Standard | Common name | Max bandwidth |
-|---|---|---|---|
-| `A` | 802.11a | Wi-Fi 1 | 20 MHz |
-| `B` | 802.11b | Wi-Fi 1 | 22 MHz |
-| `G` | 802.11g | Wi-Fi 3 | 20 MHz |
-| `N` | 802.11n | Wi-Fi 4 | 40 MHz |
-| `AC` | 802.11ac | Wi-Fi 5 | 160 MHz |
-| `AX` | 802.11ax | Wi-Fi 6/6E | 160 MHz |
-| `BE` | 802.11be | Wi-Fi 7 | 320 MHz |
+| Value | Duration | Valid for |
+|---|---|---|
+| `NORM` | 800 ns | All standards |
+| `SHORT` | 400 ns | 802.11n, 802.11ac |
+| `VSHORT` | 200 ns | 802.11ax (HE), 802.11be (EHT) |
+| `DBL` | 1600 ns | 802.11be (EHT) — extended range |
+| `QUAD` | 3200 ns | 802.11be (EHT) — maximum range |
 
-> **Note:** `BE` requires CMW firmware with 802.11be support and the **CMW-KM053x** software option.
+**Legacy standards (A/B/G) — use data rate instead of MCS:**
+
+```python
+cmw.set_standard("G")
+cmw.set_data_rate(54.0)   # 54 Mbps (802.11g max)
+
+cmw.set_standard("B")
+cmw.set_data_rate(11.0)   # 11 Mbps (802.11b max)
+```
 
 ### TX power
 
@@ -739,9 +854,75 @@ result = cmw.measure_spectral_mask(timeout=15.0)
 print(f"Mask: {result['mask_result']}  Margin={result['margin_db']:.1f} dB")
 ```
 
+### Adjacent Channel Power (ACP / ACLR)
+
+Used for regulatory spectral compliance (FCC part 15, ETSI EN 300 328).
+
+```python
+cmw.configure_acp(offset_mhz=20.0)      # offset = channel spacing
+result = cmw.measure_acp(timeout=15.0)
+print(f"Primary={result.primary_power_dbm:.1f} dBm")
+print(f"Lower ACP={result.lower_acp_dbm:.1f} dBm  ACLR={result.lower_aclr_db:.1f} dB")
+print(f"Upper ACP={result.upper_acp_dbm:.1f} dBm  ACLR={result.upper_aclr_db:.1f} dB")
+```
+
+`WLANACPResult` fields: `status`, `primary_power_dbm`, `lower_acp_dbm`, `upper_acp_dbm`, `lower_aclr_db`, `upper_aclr_db`
+
+### Occupied Bandwidth (OBW)
+
+```python
+cmw.configure_obw(percent=99.0)      # bandwidth containing 99% of power
+result = cmw.measure_obw(timeout=15.0)
+print(f"OBW={result['obw_mhz']:.1f} MHz")
+```
+
+### RSSI (RX sensitivity)
+
+```python
+result = cmw.measure_rssi(timeout=15.0)
+print(f"RSSI={result['rssi_dbm']:.1f} dBm")
+```
+
+### Packet Error Rate (PER)
+
+```python
+cmw.configure_per(packet_count=1000)
+result = cmw.measure_per(timeout=30.0)
+print(f"PER={result['per_pct']:.3f}%  ({result['error_count']}/{result['packet_count']})")
+```
+
+### 802.11ax (HE / Wi-Fi 6/6E) specific
+
+#### HE PPDU format
+
+```python
+cmw.set_he_ppdu_format("SU")    # SU (single-user) | MU (multi-user DL) | TRIG (triggered UL) | ER (extended range)
+```
+
+#### BSS colour (spatial reuse)
+
+```python
+cmw.set_bss_colour(42)   # 0–63; valid for both AX and BE
+```
+
+#### OFDMA resource unit allocation
+
+```python
+# Four 26-tone RUs in a 20 MHz channel (uplink OFDMA)
+cmw.set_ofdma_ru_allocation("26,26,26,26")
+# Single full-channel RU (242 tones = full 20 MHz)
+cmw.set_ofdma_ru_allocation("242")
+```
+
+#### Target Wake Time (TWT)
+
+```python
+cmw.set_twt(enabled=True, wake_interval_ms=512.0, sleep_duration_ms=100.0)
+```
+
 ### 802.11be (Wi-Fi 7) — EHT specific
 
-Wi-Fi 7 introduces **4096-QAM**, **320 MHz channels**, **preamble puncturing**, and **Multi-Link Operation (MLO)**. Set the standard to `BE` first, then use the EHT helpers.
+Wi-Fi 7 introduces **4096-QAM**, **320 MHz channels**, **preamble puncturing**, and **Multi-Link Operation (MLO)**.
 
 #### EHT MCS (0–13)
 
@@ -752,12 +933,10 @@ cmw.set_eht_mcs(13)         # MCS 13 = 4096-QAM 5/6
 
 # MCS 0–9  : shared with 802.11ax
 # MCS 10–11: 1024-QAM (new in 802.11be)
-# MCS 12–13: 4096-QAM (new in 802.11be)
+# MCS 12–13: 4096-QAM (new in 802.11be, requires very high SNR)
 ```
 
 #### Preamble puncturing
-
-Puncturing removes specific 20 MHz sub-channels to avoid interference while keeping the wider channel active.
 
 ```python
 cmw.set_eht_puncturing_pattern("NONE")   # no puncturing (default)
@@ -767,7 +946,7 @@ cmw.set_eht_puncturing_pattern("P160")   # puncture one 160 MHz sub-channel
 
 #### Multi-Link Operation (MLO)
 
-MLO allows the DUT to transmit simultaneously across multiple bands. Configure each link independently then set the active link count.
+MLO allows simultaneous TX/RX across multiple bands. Configure each link then set the active count.
 
 ```python
 # 3-link MLO: 2.4 GHz + 5 GHz + 6 GHz
@@ -775,12 +954,11 @@ cmw.set_mlo_link(0, freq_hz=2_437_000_000, bw_mhz=40)    # link 0 — 2.4 GHz ch
 cmw.set_mlo_link(1, freq_hz=5_180_000_000, bw_mhz=80)    # link 1 — 5 GHz ch 36
 cmw.set_mlo_link(2, freq_hz=6_135_000_000, bw_mhz=320)   # link 2 — 6 GHz ch 1
 cmw.set_mlo_link_count(3)
-```
 
-#### Spatial reuse
-
-```python
-cmw.set_eht_spatial_reuse(True)    # enable BSS colouring extension
+# Per-link power results
+per_link = cmw.measure_tx_power_mlo(link_count=3)
+for i in range(3):
+    print(f"Link {i}: {per_link[f'link_{i}_power_dbm']:.1f} dBm")
 ```
 
 #### Full Wi-Fi 7 EVM example
@@ -789,20 +967,12 @@ cmw.set_eht_spatial_reuse(True)    # enable BSS colouring extension
 cmw.set_standard("BE")
 cmw.set_bandwidth(320)
 cmw.set_eht_mcs(11)                   # 1024-QAM
-cmw.set_guard_interval("VSHORT")      # 200 ns (HE/EHT)
+cmw.set_guard_interval("VSHORT")      # 200 ns
 cmw.set_spatial_streams(4)
 cmw.set_expected_power(dbm=20.0)
 
 result = cmw.measure_evm(timeout=15.0)
 print(f"EVM RMS={result.evm_rms_db:.2f} dB  Freq error={result.freq_error_khz:.3f} kHz")
-```
-
-### Packet Error Rate (PER)
-
-```python
-cmw.configure_per(packet_count=1000)
-result = cmw.measure_per(timeout=30.0)
-print(f"PER={result['per_pct']:.3f}%  ({result['error_count']}/{result['packet_count']})")
 ```
 
 ---
@@ -1008,6 +1178,21 @@ while time.time() < deadline:
         break
     time.sleep(2)
 ```
+
+### BLE conformance test failures (PER too high / RSSI unexpected)
+
+- Ensure `le_set_phy()` is called **before** `le_measure_per()` or `le_measure_rssi()`.
+- Use `le_set_expected_power()` (not `set_expected_power()`) for BLE — the Classic and LE paths are separate on the CMW.
+- For LE Coded PHY (S2/S8) BER/PER measurements, allow a longer timeout — S8 packets are 8× longer than LE 1M.
+- If `BTRFResult.modulation_index` is `0.0` for LE Coded, this is expected — the CMW does not return that field for this PHY.
+- Verify `LECoded_S2` / `LECoded_S8` string format with your CMW firmware version; some versions use `LECODED_S2` (no underscore).
+
+### EDR DEVM measurement returns `ERR`
+
+- DEVM requires an **EDR packet type** — call `set_packet_type("2DH1")` or `"3DH1"` etc. before triggering.
+- Verify the DUT is transmitting EDR frames, not basic-rate BR frames.
+- DEVM is only valid with `set_packet_type()` values starting with `2` (π/4-DQPSK) or `3` (8DPSK).
+- Check `cmw.get_all_errors()` — a common error is attempting DEVM with a BR (DH) packet type selected.
 
 ### 802.11be (Wi-Fi 7) measurement returns `ERR` or is not available
 
