@@ -6,16 +6,18 @@ A Python library for remote control of the **Rohde & Schwarz CMW** wideband radi
 
 ## Features
 
+Primary focus: **WLAN (802.11 a/b/g/n/ac/ax/be)** and **Bluetooth LE / Classic**.
+
 | Domain | Module | Key capabilities |
 |---|---|---|
-| System / IEEE-488.2 | `SystemModule` | Reset, identify, error queue, file system |
-| RF Routing | `RoutingModule` | Connector selection, path, cable loss compensation |
+| **WLAN** | `WLANModule` | 802.11 a/b/g/n/ac/ax/**be (Wi-Fi 7)** — EVM, TX power, ACP/ACLR, OBW, RSSI, spectral mask & flatness, PER, MLO per-link power, EHT MCS 0–15, preamble puncturing, TWT, OFDMA, HE PPDU |
+| **Bluetooth** | `BluetoothModule` | **BLE**: TX power, RSSI, PER, BER, frequency offset, modulation (Δf1/Δf2), CTE/AoA/AoD; **Classic BR/EDR**: TX power, ICFT, DEVM, frequency drift, BER, modulation |
 | General-Purpose RF | `GPRFModule` | CW generator, wideband power meter, spectrum |
+| RF Routing | `RoutingModule` | Connector selection, path, cable loss compensation |
+| System / IEEE-488.2 | `SystemModule` | Reset, identify, error queue, file system |
 | LTE Signaling | `LTEModule` | Cell config, attach, data connection, RSRP/RSRQ/SINR, throughput, BLER, EVM |
 | 5G NR Signaling | `NR5GModule` | SA & NSA/EN-DC, NR-ARFCN, SS-RSRP/SINR, throughput, BLER, EVM |
 | WCDMA / UMTS | `WCDMAModule` | Cell config, attach, RSCP/Ec/No, UL power |
-| Bluetooth | `BluetoothModule` | Classic BR/EDR: TX power, ICFT, DEVM, frequency drift, BER, modulation; BLE: TX power, RSSI, PER, BER, frequency offset, CTE/AoA/AoD |
-| WLAN | `WLANModule` | 802.11 a/b/g/n/ac/ax/be (Wi-Fi 7) — EVM, TX power, ACP/ACLR, OBW, RSSI, spectral mask, PER, MLO per-link power, EHT MCS 0–15, preamble puncturing, TWT, OFDMA, HE PPDU |
 
 ---
 
@@ -85,38 +87,85 @@ with CMW.via_tcp("192.168.0.1") as cmw:
     print(f"{result.average:.2f} dBm")
 ```
 
-### 3 — LTE attach and throughput
+### 3 — WLAN: configure and measure EVM / TX power (Wi-Fi 6)
 
 ```python
 from cmw_api import CMW
-from cmw_api.lte import LTECellConfig
 
 with CMW.via_tcp("192.168.0.1") as cmw:
     cmw.initialize()
-    cmw.route.lte_set_rx_connector("RF1C")
-    cmw.lte.configure_cell(LTECellConfig(band=3, dl_channel=1300, bandwidth_mhz=20))
-    cmw.lte.cell_on()
-    cmw.lte.expect_attach(timeout=60)
-    cmw.lte.connect()
-    result = cmw.lte.measure_throughput(timeout=30)
-    print(f"DL {result.dl_throughput_mbps:.1f} Mbps / UL {result.ul_throughput_mbps:.1f} Mbps")
+    # Configure the 802.11 receiver
+    cmw.wlan.set_standard("AX")          # A | B | G | N | AC | AX | BE
+    cmw.wlan.set_channel(36)             # 5 GHz channel 36
+    cmw.wlan.set_bandwidth(80)           # 80 MHz
+    cmw.wlan.set_mcs(9)                  # MCS index
+    cmw.wlan.set_expected_power(20.0)    # dBm
+
+    # Monitor
+    pwr = cmw.wlan.measure_tx_power()
+    evm = cmw.wlan.measure_evm()
+    print(f"TX power: {pwr.avg_power_dbm:.2f} dBm   EVM RMS: {evm.evm_rms_db:.2f} dB")
 ```
 
-### 4 — 5G NR SA attach and throughput
+### 4 — WLAN: Wi-Fi 7 (802.11be) with 320 MHz + MLO
 
 ```python
 from cmw_api import CMW
-from cmw_api.nr5g import NR5GCellConfig
 
 with CMW.via_tcp("192.168.0.1") as cmw:
     cmw.initialize()
-    cmw.route.nr5g_set_rx_connector("RF1C")
-    cmw.nr5g.configure_cell(NR5GCellConfig(band=78, dl_arfcn=632628, bandwidth_mhz=100))
-    cmw.nr5g.cell_on()
-    cmw.nr5g.expect_attach(timeout=90)
-    cmw.nr5g.connect()
-    print(cmw.nr5g.measure_throughput())
+    cmw.wlan.set_standard("BE")
+    cmw.wlan.set_bandwidth(320)          # 320 MHz (Wi-Fi 7)
+    cmw.wlan.set_eht_mcs(13)             # EHT MCS 0–15
+
+    # Multi-Link Operation: 5 GHz + 6 GHz links
+    cmw.wlan.set_mlo_link(0, freq_hz=5_180_000_000, bw_mhz=160)
+    cmw.wlan.set_mlo_link(1, freq_hz=6_135_000_000, bw_mhz=320)
+    cmw.wlan.set_mlo_link_count(2)
+
+    print(cmw.wlan.measure_tx_power_mlo(link_count=2))   # per-link power
 ```
+
+### 5 — Bluetooth LE: TX power, modulation, and PER
+
+```python
+from cmw_api import CMW
+
+with CMW.via_tcp("192.168.0.1") as cmw:
+    cmw.initialize()
+    cmw.bt.le_set_phy("LE1M")            # LE1M | LE2M | LECoded_S2 | LECoded_S8
+    cmw.bt.le_set_channel(0)
+    cmw.bt.le_set_expected_power(0.0)    # dBm
+
+    pwr = cmw.bt.le_measure_tx_power()
+    mod = cmw.bt.le_measure_modulation()           # Δf1avg / Δf2avg / ratio
+    per = cmw.bt.le_measure_per(packet_count=1500) # RX conformance metric
+    print(f"LE power: {pwr.power_dbm:.2f} dBm")
+    print(f"Δf2/Δf1 ratio: {mod['delta_f2_f1_ratio']:.3f}  (pass ≥ 0.80)")
+    print(f"PER: {per.per_pct:.3f}%  ({per.error_count}/{per.packet_count})")
+```
+
+### 6 — Bluetooth Classic (BR/EDR): TX power, ICFT, DEVM
+
+```python
+from cmw_api import CMW
+
+with CMW.via_tcp("192.168.0.1") as cmw:
+    cmw.initialize()
+    cmw.bt.set_frequency(channel=0)      # channel 0 = 2402 MHz
+    cmw.bt.set_expected_power(4.0)       # dBm
+
+    cmw.bt.set_packet_type("DH1")
+    pwr  = cmw.bt.measure_tx_power()
+    icft = cmw.bt.measure_icft()         # Initial Carrier Frequency Tolerance
+
+    cmw.bt.set_packet_type("2DH1")       # EDR packet required for DEVM
+    devm = cmw.bt.measure_devm()
+    print(f"TX power: {pwr.power_dbm:.2f} dBm   ICFT: {icft['icft_ppm']:.1f} ppm")
+    print(f"DEVM: {devm['devm_db']:.1f} dB")
+```
+
+> Cellular examples (LTE, 5G NR, WCDMA) are in [USER_GUIDE.md](USER_GUIDE.md) and [examples.py](examples.py).
 
 ---
 
